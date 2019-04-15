@@ -10,7 +10,6 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <sonar.language>java</sonar.language>
-    <sonar.host.url>${sonarServer}</sonar.host.url>
     <sonar.projectKey>maven-test-project_full-analysis_slokits</sonar.projectKey>
     <sonar.login>test</sonar.login>
     <sonar.password>test</sonar.password>
