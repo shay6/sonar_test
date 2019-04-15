@@ -40,21 +40,6 @@ pipeline {
             java.binaries (string): REQUIRED Since SonarJava 4.12
              */
             steps {
-              writeFile file: "${pwd()}/sonar-project.properties", text: """
-              sonar.projectKey=test-files_1_0_java_full-analysis
-              sonar.projectName=Java Testfiles
-              sonar.projectVersion=1.0
-              sonar.sources=${pwd()}
-              sonar.projectBaseDir=${pwd()}
-              sonar.language=java
-              sonar.inclusions=**/*.java
-              sonar.exclusions=src/test/**/*.java
-              sonar.login=test
-              sonar.password=test
-              sonar.ws.timeout=180
-              sonar.java.binaries=**/target/classes
-              """
-
               // initite pre-configured sonar scanner tool on project
               // 'sonarqube_prod' is our cnfigured tool name, see yours
               // in the Jenkins tool configuration
