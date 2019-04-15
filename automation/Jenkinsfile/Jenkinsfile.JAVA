@@ -10,7 +10,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 // clone project
-                git url: 'https://github.com/RedHatQE/CodeQuality.git'
+                git url: 'https://github.com/shay6/sonar_test.git'
             }
         }
         stage('Analyse') {
