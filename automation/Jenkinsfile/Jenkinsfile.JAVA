@@ -60,7 +60,8 @@ pipeline {
               // in the Jenkins tool configuration
               // NOTE: pay attention we are using maven under sonar env
               withSonarQubeEnv('sonarqube_prod') {
-                sh "${tool 'sonar-scanner-2.8'}/bin/sonar-scanner"
+                sh "#${tool 'sonar-scanner-2.8'}/bin/sonar-scanner"
+                sh "mvn sonar:sonar"
               }
             }
         }
