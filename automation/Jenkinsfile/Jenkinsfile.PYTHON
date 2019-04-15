@@ -1,0 +1,68 @@
+pipeline {
+    agent { node { label 'sonarqube-upshift' } }
+    options {
+      skipDefaultCheckout true
+    }
+    triggers {
+      cron('0 8 * * *')
+    }
+    stages {
+        stage('Deploy') {
+            steps {
+                // clone project
+                git url: 'https://github.com/RedHatQE/CodeQuality.git'
+            }
+        }
+        stage('Analyse') {
+            steps {
+                dir('examples/python-test-repo') {
+                // run tests with coverage and export results to xml
+                sh 'coverage run --source . main.py'
+                sh 'coverage xml'
+                }
+            }
+        }
+        stage('Report') {
+            /*
+            sonar runner parameters, set sources and baseDir to project home
+            ========================
+
+            projectKey (string): SonarQube project identification key (unique)
+            projectName (string): SonarQube project name (NOT unique)
+            projectVersion (string): SonarQube project version (unique)
+            sources (string): source code home directory
+            projectBaseDir (string): project home directory (same as sources)
+            python.coverage (string): relative xml coverage report path
+            language (string): project language(py)
+            inclusions (string): file inclusion pattern
+            exclusions (string): file exclusion pattern
+            login (string): SonarQube server user name
+            password (string): SonarQube server user password
+             */
+            steps {
+              writeFile file: "${pwd()}/sonar-project.properties", text: """
+              sonar.projectKey=test-files_1_0_python_full-analysis
+              sonar.projectName=Python Testfiles
+              sonar.projectVersion=1.0
+              sonar.sources=${pwd()}/examples/python-test-repo
+              sonar.projectBaseDir=${pwd()}/examples/python-test-repo
+              sonar.python.coverage.reportPath=${pwd()}/examples/python-test-repo/coverage.xml
+              sonar.language=py
+              sonar.inclusions=**/*.py
+              sonar.exclusions=tests/**/*.py
+              sonar.login=test
+              sonar.password=test
+              sonar.ws.timeout=180
+              """
+
+              // initite pre-configured sonar scanner tool on project
+              // 'sonarqube_prod' is our cnfigured tool name, see yours
+              // in the Jenkins tool configuration
+              withSonarQubeEnv('sonarqube_prod') {
+                sh "${tool 'sonar-scanner-2.8'}/bin/sonar-scanner"
+
+              }
+            }
+        }
+    }
+}

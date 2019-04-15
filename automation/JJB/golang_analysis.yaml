@@ -1,0 +1,111 @@
+- job:
+          name: sonarqube_golang_analysis
+
+          #######################################################
+          ############## SonarQube Parameters ###################
+          #######################################################
+
+          # sonarqube project parameters, set before build
+          parameters:
+            - string:
+                name: SONAR_KEY
+                default: sonarqube_golang_analysis
+                description: "SonarQube unique project key"
+            - string:
+                name: SONAR_NAME
+                default: Testfiles Golang Analysis
+                description: "SonarQube project name"
+            - string:
+                name: SONAR_PROJECT_VERSION
+                default: "1.0"
+                description: "SonarQube project version"
+
+          #######################################################
+          ############### Logging Aggregation ###################
+          #######################################################
+
+          # define how many days to keep build information
+          properties:
+            - build-discarder:
+                days-to-keep: 60
+                num-to-keep: 200
+                artifact-days-to-keep: 60
+                artifact-num-to-keep: 200
+
+          #######################################################
+          ################### Slave Image #######################
+          #######################################################
+
+          node: sonarqube-upshift
+
+          #######################################################
+          ################ Git Trigger Config ###################
+          #######################################################
+
+          # git repo to follow, skip-tag to not require auth
+          scm:
+            - git:
+                url: https://github.com/RedHatQE/CodeQuality.git
+                basedir: ${WORKSPACE}/gocode/src/github.com/
+                skip-tag: true
+
+          #######################################################
+          ################### Build Steps #######################
+          #######################################################
+
+          builders:
+
+            # project deployment script goes here
+            - shell: |
+                # Generating Coverage report
+                cd ${WORKSPACE}/gocode/src/github.com/examples/golang-test-repo/
+                export GOPATH=${WORKSPACE}/gocode/
+                export PATH="${WORKSPACE}/gocode/bin:$PATH"
+                go test -coverprofile=cover.out
+
+                # Download tool and convert report to XML file
+                go get github.com/axw/gocov/gocov
+                go get github.com/AlekSi/gocov-xml
+                gocov convert cover.out | gocov-xml > coverage.xml
+
+            # sonar runner parameters, set sources and baseDir to project home
+            # projectKey (string): SonarQube project identification key (unique)
+            # projectName (string): SonarQube project name (NOT unique)
+            # projectVersion (string): SonarQube project version (unique)
+            # sources (string): source code home directory
+            # projectBaseDir (string): project home directory (same as sources)
+            # language (string): project language(ruby)
+            # inclusions (string): file inclusion pattern
+            # exclusions (string): file exclusion pattern
+            # login (string): SonarQube server user name
+            # password (string): SonarQube server user password
+            - sonar:
+                sonar-name: sonarqube_prod
+                properties: |
+                  sonar.projectKey=$SONAR_KEY
+                  sonar.projectName=$SONAR_NAME
+                  sonar.projectVersion=$SONAR_PROJECT_VERSION
+                  sonar.sources=${WORKSPACE}/gocode/src/github.com/examples/golang-test-repo/
+                  sonar.projectBaseDir=${WORKSPACE}/gocode/src/github.com/examples/golang-test-repo/
+                  sonar.go.coverage.reportPaths=cover.out
+                  sonar.language=go
+                  sonar.inclusions=**/size.go
+                  sonar.exclusions=**/*_test.go
+                  sonar.login=test
+                  sonar.password=test
+                  sonar.ws.timeout=180
+
+
+            ########################################################
+            ################### Report Publisher ####################
+            #########################################################
+
+            # publishes aggregated results to Jenkins
+          publishers:
+            - cobertura:
+                report-file: "**/gocode/src/github.com/examples/golang-test-repo/coverage.xml"
+                targets:
+                  - line:
+                      healthy: 0
+                      unhealthy: 0
+                      failing: 0
